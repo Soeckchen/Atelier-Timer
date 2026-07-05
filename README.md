@@ -5,45 +5,8 @@ right into each session plan. Runs entirely in the browser, no data
 collection, no login. Add new exercise plans yourself as JSON — no coding
 required.
 
-Live demo once set up: `https://YOUR-GITHUB-NAME.github.io/atelier-timer/`
 
-## 1. Create the GitHub repo
-
-1. Go to [github.com/new](https://github.com/new) and create a new
-   repository, e.g. named `atelier-timer`. Keep it **Public** — free GitHub
-   Pages hosting requires a public repo (unless you're on a paid plan).
-2. **Don't** let GitHub initialize a README/`.gitignore` — the files here
-   replace that.
-
-## 2. Upload the files
-
-Easiest option, no command line needed:
-
-1. In the empty repo, click **"uploading an existing file"**.
-2. Drag in all files from this folder: `index.html`, `manifest.json`,
-   `sw.js`, `icon-192.png`, `icon-512.png`.
-3. Enter a commit message (e.g. "Initial commit") and click **Commit changes**.
-
-Alternative using Git:
-
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/YOUR-GITHUB-NAME/atelier-timer.git
-git push -u origin main
-```
-
-## 3. Enable GitHub Pages
-
-1. In the repo, go to **Settings → Pages**.
-2. Under **Build and deployment → Source**, choose `Deploy from a branch`.
-3. Branch: `main`, folder: `/ (root)` — click **Save**.
-4. After about a minute, the app is live at
-   `https://YOUR-GITHUB-NAME.github.io/atelier-timer/`.
-
-## 4. Install it on your phone
+## 1. Install it on your phone
 
 1. Open the GitHub Pages URL in your phone's browser.
 2. **iOS (Safari):** tap the Share icon → "Add to Home Screen".
@@ -111,11 +74,6 @@ self-hosted) — nothing is sent to a server.
 Just re-commit and push changes to `index.html`, `manifest.json`, etc. (or
 edit directly in the repo on GitHub and commit) — GitHub Pages redeploys
 automatically.
-
-## Custom domain (optional)
-
-Under **Settings → Pages → Custom domain** you can set up your own domain.
-Not necessary for personal use.
 
 ## Files in this repo
 
