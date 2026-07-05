@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atelier — Zeichentraining</title>
+<meta name="description" content="Timer-gestütztes Zeichentraining mit Übungsangaben und Prompts, komplett lokal, ohne Datenerfassung.">
+<meta name="theme-color" content="#1b1815">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1b1815;
+    --surface:#242019;
+    --surface-2:#2e2820;
+    --line:#3a3327;
+    --paper:#ede3d0;
+    --paper-dim:#b3a992;
+    --sanguine:#a8543a;
+    --sanguine-soft:rgba(168,84,58,0.18);
+    --ok:#8a9a72;
+    --radius:14px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; height:100%; background:var(--bg); color:var(--paper);
+    font-family:'Inter',system-ui,sans-serif;}
+  body{
+    display:flex; justify-content:center;
+    min-height:100dvh;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  #app{ width:100%; max-width:520px; min-height:100dvh; display:flex; flex-direction:column;
+    padding:calc(env(safe-area-inset-top) + 20px) 18px 24px; position:relative;}
+
+  h1,h2,h3{font-family:'Fraunces',serif; font-weight:600; margin:0;}
+  .brand{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:22px;}
+  .brand h1{font-size:1.5rem; letter-spacing:.2px;}
+  .brand .mark{font-size:.68rem; letter-spacing:.14em; text-transform:uppercase; color:var(--paper-dim); border:1px solid var(--line); padding:4px 8px; border-radius:20px;}
+
+  .view{display:none; flex-direction:column; gap:16px; flex:1;}
+  .view.active{display:flex;}
+
+  /* buttons */
+  .btn{font-family:'Inter'; font-weight:600; font-size:.92rem; border:none; border-radius:10px;
+    padding:13px 16px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px;}
+  .btn-primary{background:var(--sanguine); color:var(--paper);}
+  .btn-primary:active{filter:brightness(1.08);}
+  .btn-ghost{background:transparent; color:var(--paper); border:1px solid var(--line);}
+  .btn-ghost:active{background:var(--surface-2);}
+  .btn-text{background:none; color:var(--paper-dim); padding:6px 4px; font-size:.85rem;}
+  .btn-danger{background:none; color:#b56a5a; border:1px solid #4a3129;}
+  .btn-block{width:100%;}
+  .btn-row{display:flex; gap:10px;}
+  .btn:disabled{opacity:.4;}
+
+  /* library */
+  .session-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px; display:flex; flex-direction:column; gap:8px;}
+  .session-card h3{font-size:1.08rem;}
+  .session-card p{margin:0; font-size:.86rem; color:var(--paper-dim); line-height:1.4;}
+  .tag-row{display:flex; gap:6px; flex-wrap:wrap;}
+  .tag{font-size:.68rem; text-transform:uppercase; letter-spacing:.06em; background:var(--sanguine-soft);
+    color:#d79e8b; padding:3px 8px; border-radius:20px;}
+  .card-foot{display:flex; justify-content:space-between; align-items:center; margin-top:4px;}
+  .card-meta{font-family:'JetBrains Mono'; font-size:.78rem; color:var(--paper-dim);}
+  .icon-btn{background:none; border:none; color:var(--paper-dim); font-size:1rem; padding:4px 8px; cursor:pointer;}
+  .icon-btn:active{color:var(--paper);}
+
+  .empty-state{border:1px dashed var(--line); border-radius:var(--radius); padding:28px 18px; text-align:center; color:var(--paper-dim); font-size:.9rem;}
+
+  /* preview */
+  .phase-list{display:flex; flex-direction:column; gap:10px;}
+  .phase-row{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px 14px; display:flex; gap:12px; align-items:flex-start;}
+  .phase-num{font-family:'JetBrains Mono'; font-size:.78rem; color:var(--sanguine); padding-top:2px;}
+  .phase-row div.body{flex:1;}
+  .phase-row h4{margin:0 0 3px; font-family:'Inter'; font-size:.94rem; font-weight:600;}
+  .phase-row p{margin:0; font-size:.82rem; color:var(--paper-dim); line-height:1.4;}
+  .phase-row .rep-meta{font-family:'JetBrains Mono'; font-size:.72rem; color:var(--paper-dim); margin-top:4px;}
+
+  /* runner */
+  .runner{align-items:center; text-align:center; gap:20px;}
+  .phase-badge{font-family:'JetBrains Mono'; font-size:.72rem; letter-spacing:.1em; text-transform:uppercase;
+    background:var(--surface-2); border:1px solid var(--line); padding:6px 14px; border-radius:20px; color:var(--paper-dim);}
+  .ring-wrap{position:relative; width:230px; height:230px;}
+  svg.ring{transform:rotate(-90deg);}
+  .ring-track{fill:none; stroke:var(--surface-2); stroke-width:10;}
+  .ring-progress{fill:none; stroke:var(--sanguine); stroke-width:10; stroke-linecap:round; transition:stroke-dashoffset 1s linear;}
+  .ring-center{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .time{font-family:'JetBrains Mono'; font-size:2.5rem; font-weight:700;}
+  .rep-count{font-size:.78rem; color:var(--paper-dim); margin-top:2px;}
+  .instruction{font-size:1rem; line-height:1.5; max-width:380px;}
+  .checkq{font-style:italic; color:var(--paper-dim); font-size:.88rem; max-width:360px;}
+  .prompt-box{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px 16px; font-size:.92rem; width:100%;}
+  .prompt-box .label{font-family:'JetBrains Mono'; font-size:.68rem; text-transform:uppercase; letter-spacing:.08em; color:var(--sanguine); display:block; margin-bottom:4px;}
+
+  /* modal */
+  .overlay{position:fixed; inset:0; background:rgba(10,9,7,.72); display:none; align-items:flex-end; justify-content:center; z-index:20;}
+  .overlay.active{display:flex;}
+  .sheet{background:var(--surface); width:100%; max-width:520px; border-radius:18px 18px 0 0; padding:20px 18px calc(env(safe-area-inset-bottom) + 20px); max-height:88vh; overflow-y:auto;}
+  .sheet h2{font-size:1.15rem; margin-bottom:12px;}
+  textarea{width:100%; min-height:180px; background:var(--bg); color:var(--paper); border:1px solid var(--line);
+    border-radius:10px; padding:12px; font-family:'JetBrains Mono'; font-size:.78rem; line-height:1.5; resize:vertical;}
+  .error-box{background:rgba(168,84,58,.15); border:1px solid var(--sanguine); color:#e0a493; padding:10px 12px; border-radius:8px; font-size:.82rem; display:none;}
+  .error-box.active{display:block;}
+  .hint{font-size:.8rem; color:var(--paper-dim); line-height:1.5; margin-bottom:10px;}
+
+  .top-actions{display:flex; justify-content:flex-end; gap:8px; margin-bottom:4px;}
+  .done-summary{display:flex; flex-direction:column; gap:10px; align-items:center; text-align:center;}
+
+  @media (prefers-reduced-motion: reduce){ .ring-progress{transition:none;} }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- LIBRARY -->
+  <section class="view active" id="view-library">
+    <div class="brand">
+      <h1>Atelier</h1>
+      <span class="mark">Zeichentraining</span>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary btn-block" id="btn-add">+ Neue Session</button>
+      <button class="btn btn-ghost" id="btn-template" title="KI-Vorlage anzeigen">🤖</button>
+    </div>
+    <div id="session-list" style="display:flex; flex-direction:column; gap:12px;"></div>
+  </section>
+
+  <!-- PREVIEW -->
+  <section class="view" id="view-preview">
+    <div class="top-actions">
+      <button class="btn-text" id="btn-back-lib">← Bibliothek</button>
+    </div>
+    <h2 id="pv-title"></h2>
+    <p id="pv-desc" style="color:var(--paper-dim); font-size:.88rem; margin:0;"></p>
+    <div class="tag-row" id="pv-tags"></div>
+    <p id="pv-hints" class="hint"></p>
+    <div class="phase-list" id="pv-phases"></div>
+    <button class="btn btn-primary btn-block" id="btn-start">Session starten</button>
+  </section>
+
+  <!-- RUNNER -->
+  <section class="view runner" id="view-runner">
+    <div class="phase-badge" id="rn-phase-name">—</div>
+    <div class="ring-wrap">
+      <svg class="ring" width="230" height="230" viewBox="0 0 230 230">
+        <circle class="ring-track" cx="115" cy="115" r="100"></circle>
+        <circle class="ring-progress" id="ring-progress" cx="115" cy="115" r="100"></circle>
+      </svg>
+      <div class="ring-center">
+        <div class="time" id="rn-time">00:00</div>
+        <div class="rep-count" id="rn-rep">Wdh. 1/1</div>
+      </div>
+    </div>
+    <p class="instruction" id="rn-instruction"></p>
+    <div class="prompt-box" id="rn-prompt-box" style="display:none;">
+      <span class="label">Vorgabe</span>
+      <span id="rn-prompt"></span>
+    </div>
+    <p class="checkq" id="rn-checkq"></p>
+    <div class="btn-row" style="width:100%;">
+      <button class="btn btn-ghost" id="btn-pause" style="flex:1;">Pause</button>
+      <button class="btn btn-ghost" id="btn-skip" style="flex:1;">Weiter</button>
+    </div>
+    <button class="btn btn-text" id="btn-stop">Session abbrechen</button>
+  </section>
+
+  <!-- DONE -->
+  <section class="view" id="view-done">
+    <div class="done-summary" style="margin-top:40px;">
+      <h2>Session beendet</h2>
+      <p style="color:var(--paper-dim);" id="done-title"></p>
+      <button class="btn btn-primary" id="btn-done-lib">Zurück zur Bibliothek</button>
+    </div>
+  </section>
+
+</div>
+
+<!-- IMPORT / EDIT MODAL -->
+<div class="overlay" id="overlay-import">
+  <div class="sheet">
+    <h2 id="import-title">Neue Session hinzufügen</h2>
+    <p class="hint">Füge das JSON deiner Session ein (z. B. von einer KI mit der Vorlage erstellt).</p>
+    <div class="error-box" id="import-error"></div>
+    <textarea id="import-textarea" placeholder='{"id": "...", "titel": "...", "phasen": [...] }'></textarea>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-ghost" id="btn-import-cancel" style="flex:1;">Abbrechen</button>
+      <button class="btn btn-primary" id="btn-import-save" style="flex:1;">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEMPLATE MODAL -->
+<div class="overlay" id="overlay-template">
+  <div class="sheet">
+    <h2>KI-Vorlage</h2>
+    <p class="hint">Kopiere diesen Text und schick ihn an eine KI zusammen mit deinem aktuellen Trainingsziel. Die Antwort (reines JSON) fügst du danach über "Neue Session" ein.</p>
+    <textarea id="template-textarea" readonly style="min-height:320px;"></textarea>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-ghost" id="btn-template-close" style="flex:1;">Schließen</button>
+      <button class="btn btn-primary" id="btn-template-copy" style="flex:1;">Kopieren</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- storage adapter: works as Claude artifact (window.storage) and as standalone file (localStorage) ---------- */
+const STORAGE_KEY = 'atelier_sessions_v1';
+const storageAdapter = {
+  async get(key){
+    if (window.storage){
+      try{ const r = await window.storage.get(key, false); return r ? r.value : null; }
+      catch(e){ return null; }
+    }
+    try{ return localStorage.getItem(key); } catch(e){ return null; }
+  },
+  async set(key, value){
+    if (window.storage){
+      try{ await window.storage.set(key, value, false); return true; }
+      catch(e){ return false; }
+    }
+    try{ localStorage.setItem(key, value); return true; } catch(e){ return false; }
+  }
+};
+
+/* ---------- default sessions ---------- */
+const DEFAULT_SESSIONS = [
+  {
+    id: "bridgman-gesture",
+    titel: "Gesten-Linie & Bridgman-Block-in",
+    beschreibung: "Trainiert flüssige Gestenlinien und Block-in mit Boxen vor der Kontur.",
+    fokus: ["gesture", "block-in"],
+    schwierigkeit: "fortgeschritten",
+    phasen: [
+      {
+        name: "Warm-up",
+        typ: "warmup",
+        wiederholungen: 5,
+        dauer_sek_pro_wiederholung: 30,
+        anweisung: "One-line continuous. Stift bleibt auf dem Papier, nicht radieren, drüberzeichnen.",
+        checkfrage: "Ist das eine Linie oder fünf übereinandergelegte?",
+        prompts: ["dynamic figure gesture reference", "croquis dance pose", "contrapposto reference"]
+      },
+      {
+        name: "Hauptblock",
+        typ: "hauptblock",
+        wiederholungen: 4,
+        dauer_sek_pro_wiederholung: 150,
+        anweisung: "Erst 30–45 Sek. nur Boxen/Zylinder (Brustkorb, Becken, Gliedmaßen), dann erst Kontur.",
+        checkfrage: "Sehe ich die Box, bevor ich die Kontur ziehe?",
+        prompts: ["figure drawing reference torso rotation", "anatomy reference studio lighting", "figure drawing reference 3/4 view"]
+      },
+      {
+        name: "Cooldown",
+        typ: "cooldown",
+        wiederholungen: 1,
+        dauer_sek_pro_wiederholung: 300,
+        anweisung: "Gesten-Linie zuerst, dann Block-in, dann leichte Kontur — beide Skills kombiniert.",
+        checkfrage: "Fließen die Mini-Skills in eine echte Pose ein?",
+        prompts: ["figure drawing reference torso rotation"]
+      }
+    ],
+    hinweise: "Harte Regel: keine Kontur ohne sichtbare Box darunter."
+  },
+  {
+    id: "perspektive-kisten",
+    titel: "Perspektive: Kisten im Raum",
+    beschreibung: "Trainiert saubere Fluchtpunkte und räumliches Denken mit einfachen Grundformen.",
+    fokus: ["perspective", "construction"],
+    schwierigkeit: "einsteiger",
+    phasen: [
+      {
+        name: "Warm-up",
+        typ: "warmup",
+        wiederholungen: 8,
+        dauer_sek_pro_wiederholung: 20,
+        anweisung: "Ziehe gerade Linien freihand zwischen zwei markierten Punkten, ohne Lineal.",
+        checkfrage: "Ist die Linie in einem Zug entstanden?",
+        prompts: ["horizontale Linien", "vertikale Linien", "diagonale Linien"]
+      },
+      {
+        name: "Hauptblock",
+        typ: "hauptblock",
+        wiederholungen: 4,
+        dauer_sek_pro_wiederholung: 180,
+        anweisung: "Zeichne einen Quader in Zwei-Punkt-Perspektive mit beiden Fluchtpunkten auf gleicher Augenhöhe.",
+        checkfrage: "Laufen alle Parallelen zum selben Fluchtpunkt?",
+        prompts: ["two point perspective box reference", "perspective drawing cubes reference", "architectural perspective sketch"]
+      },
+      {
+        name: "Cooldown",
+        typ: "cooldown",
+        wiederholungen: 1,
+        dauer_sek_pro_wiederholung: 300,
+        anweisung: "Kombiniere 3–4 Kisten unterschiedlicher Größe im selben Raum mit denselben Fluchtpunkten.",
+        checkfrage: "Bleiben alle Kisten konsistent zur Perspektive?",
+        prompts: ["still life boxes perspective reference"]
+      }
+    ],
+    hinweise: "Lineal nur zur Kontrolle am Ende einsetzen, nicht während des Zeichnens."
+  }
+];
+
+const AI_TEMPLATE = `Du erstellst eine Zeichenübungs-Session für eine Timer-App. Gib AUSSCHLIESSLICH ein valides JSON-Objekt zurück – kein Fließtext, keine Markdown-Codeblock-Zeichen, keine Kommentare.
+
+SCHEMA:
+{
+  "id": string (kebab-case, eindeutig),
+  "titel": string,
+  "beschreibung": string (1 Satz: welches Skill wird trainiert),
+  "fokus": string[] (Stichworte, z.B. ["gesture","proportion"]),
+  "schwierigkeit": "einsteiger" | "fortgeschritten" | "erfahren",
+  "phasen": [
+    {
+      "name": string,
+      "typ": "warmup" | "hauptblock" | "cooldown",
+      "wiederholungen": number,
+      "dauer_sek_pro_wiederholung": number,
+      "anweisung": string (max. 2 Sätze, konkrete Handlungsanweisung, keine Theorie),
+      "checkfrage": string (eine Selbstkontroll-Frage fürs Zeichnen),
+      "prompts": string[] (konkrete Motiv-/Referenz-Suchbegriffe, keine ganzen Sätze; werden zyklisch auf die Wiederholungen verteilt)
+    }
+  ],
+  "hinweise": string (optional, eine generelle Regel für die ganze Session)
+}
+
+REGELN:
+- 2–4 Phasen, üblich: warmup -> hauptblock -> optional cooldown
+- dauer_sek_pro_wiederholung realistisch: warmup 20–60s, hauptblock 60–300s, cooldown 180–600s
+- anweisung = Handlungsanweisung, keine Erklärung
+- prompts = konkrete Suchbegriffe für Referenzbilder, keine ganzen Sätze
+- Gesamtlänge grob an meine Zielzeit anpassen (siehe unten)
+
+MEIN AKTUELLES TRAININGSZIEL / DIAGNOSE:
+[hier einfügen, z.B. "Bridgman-Block-in und durchgehende Gestenlinie" oder "Linienqualität bei Architekturskizzen"]
+
+ZIELDAUER GESAMT: [z.B. 15 Minuten]`;
+
+/* ---------- state ---------- */
+let sessions = [];
+let editingId = null; // for edit-mode in import modal
+let runner = null; // active session run state
+
+/* ---------- init ---------- */
+async function init(){
+  let raw = null;
+  try{ raw = await storageAdapter.get(STORAGE_KEY); }catch(e){ raw = null; }
+  if (raw){
+    try{ sessions = JSON.parse(raw); }catch(e){ sessions = DEFAULT_SESSIONS.slice(); }
+  } else {
+    sessions = DEFAULT_SESSIONS.slice();
+    await persist();
+  }
+  document.getElementById('template-textarea').value = AI_TEMPLATE;
+  renderLibrary();
+}
+
+async function persist(){
+  try{ await storageAdapter.set(STORAGE_KEY, JSON.stringify(sessions)); }catch(e){}
+}
+
+/* ---------- view switching ---------- */
+function showView(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* ---------- library ---------- */
+function totalMinutes(session){
+  const secs = session.phasen.reduce((sum,p)=> sum + p.wiederholungen * p.dauer_sek_pro_wiederholung, 0);
+  return Math.round(secs/60);
+}
+
+function renderLibrary(){
+  const list = document.getElementById('session-list');
+  list.innerHTML = '';
+  if (sessions.length === 0){
+    list.innerHTML = '<div class="empty-state">Noch keine Sessions. Füge eine über "+ Neue Session" hinzu.</div>';
+    return;
+  }
+  sessions.forEach(s=>{
+    const card = document.createElement('div');
+    card.className = 'session-card';
+    card.innerHTML = `
+      <h3>${escapeHtml(s.titel)}</h3>
+      <p>${escapeHtml(s.beschreibung||'')}</p>
+      <div class="tag-row">${(s.fokus||[]).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>
+      <div class="card-foot">
+        <span class="card-meta">${totalMinutes(s)} min · ${s.phasen.length} Phasen · ${escapeHtml(s.schwierigkeit||'')}</span>
+        <div>
+          <button class="icon-btn" data-edit="${s.id}" title="Bearbeiten">✎</button>
+          <button class="icon-btn" data-del="${s.id}" title="Löschen">✕</button>
+        </div>
+      </div>`;
+    card.addEventListener('click', (e)=>{
+      if (e.target.closest('[data-edit]') || e.target.closest('[data-del]')) return;
+      openPreview(s.id);
+    });
+    list.appendChild(card);
+  });
+  list.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    openImportModal(b.dataset.edit);
+  }));
+  list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    if (confirm('Diese Session wirklich löschen?')){
+      sessions = sessions.filter(s=>s.id !== b.dataset.del);
+      persist(); renderLibrary();
+    }
+  }));
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div'); d.textContent = str==null?'':String(str); return d.innerHTML;
+}
+
+/* ---------- preview ---------- */
+let previewSessionId = null;
+function openPreview(id){
+  const s = sessions.find(x=>x.id===id);
+  if (!s) return;
+  previewSessionId = id;
+  document.getElementById('pv-title').textContent = s.titel;
+  document.getElementById('pv-desc').textContent = s.beschreibung || '';
+  document.getElementById('pv-tags').innerHTML = (s.fokus||[]).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('') +
+    `<span class="tag">${totalMinutes(s)} min</span>`;
+  document.getElementById('pv-hints').textContent = s.hinweise || '';
+  const phasesEl = document.getElementById('pv-phases');
+  phasesEl.innerHTML = s.phasen.map((p,i)=>`
+    <div class="phase-row">
+      <div class="phase-num">${String(i+1).padStart(2,'0')}</div>
+      <div class="body">
+        <h4>${escapeHtml(p.name)}</h4>
+        <p>${escapeHtml(p.anweisung)}</p>
+        <div class="rep-meta">${p.wiederholungen}× ${p.dauer_sek_pro_wiederholung}s</div>
+      </div>
+    </div>`).join('');
+  showView('view-preview');
+}
+
+/* ---------- runner ---------- */
+let ringCircumference = 2 * Math.PI * 100;
+document.getElementById('ring-progress').style.strokeDasharray = ringCircumference;
+
+function startSession(id){
+  const s = sessions.find(x=>x.id===id);
+  if (!s) return;
+  runner = {
+    session: s,
+    phaseIndex: 0,
+    repIndex: 0,
+    secondsLeft: s.phasen[0].dauer_sek_pro_wiederholung,
+    paused: false,
+    interval: null
+  };
+  showView('view-runner');
+  renderRunnerFrame();
+  runner.interval = setInterval(tick, 1000);
+}
+
+function currentPhase(){ return runner.session.phasen[runner.phaseIndex]; }
+
+function tick(){
+  if (runner.paused) return;
+  runner.secondsLeft--;
+  if (runner.secondsLeft < 0){
+    advance();
+  } else {
+    updateTimeDisplay();
+  }
+}
+
+function advance(){
+  const phase = currentPhase();
+  runner.repIndex++;
+  if (runner.repIndex >= phase.wiederholungen){
+    runner.repIndex = 0;
+    runner.phaseIndex++;
+    if (runner.phaseIndex >= runner.session.phasen.length){
+      finishSession();
+      return;
+    }
+    beep('phase');
+  } else {
+    beep('rep');
+  }
+  runner.secondsLeft = currentPhase().dauer_sek_pro_wiederholung;
+  renderRunnerFrame();
+}
+
+function renderRunnerFrame(){
+  const phase = currentPhase();
+  document.getElementById('rn-phase-name').textContent = phase.name;
+  document.getElementById('rn-instruction').textContent = phase.anweisung;
+  document.getElementById('rn-checkq').textContent = phase.checkfrage ? '„' + phase.checkfrage + '"' : '';
+  document.getElementById('rn-rep').textContent = `Wdh. ${runner.repIndex+1}/${phase.wiederholungen}`;
+  const promptBox = document.getElementById('rn-prompt-box');
+  if (phase.prompts && phase.prompts.length){
+    promptBox.style.display = 'block';
+    document.getElementById('rn-prompt').textContent = phase.prompts[runner.repIndex % phase.prompts.length];
+  } else {
+    promptBox.style.display = 'none';
+  }
+  updateTimeDisplay();
+}
+
+function updateTimeDisplay(){
+  const phase = currentPhase();
+  const mm = String(Math.floor(runner.secondsLeft/60)).padStart(2,'0');
+  const ss = String(runner.secondsLeft%60).padStart(2,'0');
+  document.getElementById('rn-time').textContent = `${mm}:${ss}`;
+  const frac = Math.max(0, runner.secondsLeft) / phase.dauer_sek_pro_wiederholung;
+  const offset = ringCircumference * (1 - frac);
+  document.getElementById('ring-progress').style.strokeDashoffset = offset;
+}
+
+function finishSession(){
+  clearInterval(runner.interval);
+  beep('end');
+  document.getElementById('done-title').textContent = runner.session.titel;
+  showView('view-done');
+  runner = null;
+}
+
+function stopSession(){
+  if (runner) clearInterval(runner.interval);
+  runner = null;
+  showView('view-library');
+}
+
+/* simple beep via WebAudio, no external assets */
+let audioCtx = null;
+function beep(kind){
+  try{
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const seq = kind==='end' ? [660,520,440] : kind==='phase' ? [500,700] : [600];
+    let t = audioCtx.currentTime;
+    seq.forEach(freq=>{
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.exponentialRampToValueAtTime(0.18, t+0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t+0.18);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t); osc.stop(t+0.2);
+      t += 0.22;
+    });
+  }catch(e){ /* audio not available, fail silently */ }
+}
+
+/* ---------- import / edit modal ---------- */
+function openImportModal(id){
+  editingId = id || null;
+  document.getElementById('import-error').classList.remove('active');
+  document.getElementById('import-title').textContent = id ? 'Session bearbeiten' : 'Neue Session hinzufügen';
+  const ta = document.getElementById('import-textarea');
+  if (id){
+    const s = sessions.find(x=>x.id===id);
+    ta.value = JSON.stringify(s, null, 2);
+  } else {
+    ta.value = '';
+  }
+  document.getElementById('overlay-import').classList.add('active');
+}
+
+function closeImportModal(){
+  document.getElementById('overlay-import').classList.remove('active');
+}
+
+function validateSession(obj){
+  if (!obj || typeof obj !== 'object') return 'Kein gültiges JSON-Objekt.';
+  if (!obj.id || typeof obj.id !== 'string') return 'Feld "id" fehlt oder ist kein String.';
+  if (!obj.titel || typeof obj.titel !== 'string') return 'Feld "titel" fehlt oder ist kein String.';
+  if (!Array.isArray(obj.phasen) || obj.phasen.length === 0) return 'Feld "phasen" muss ein nicht-leeres Array sein.';
+  for (const [i,p] of obj.phasen.entries()){
+    if (!p.name) return `Phase ${i+1}: "name" fehlt.`;
+    if (!p.wiederholungen || p.wiederholungen < 1) return `Phase ${i+1}: "wiederholungen" muss ≥ 1 sein.`;
+    if (!p.dauer_sek_pro_wiederholung || p.dauer_sek_pro_wiederholung < 1) return `Phase ${i+1}: "dauer_sek_pro_wiederholung" muss ≥ 1 sein.`;
+    if (!p.anweisung) return `Phase ${i+1}: "anweisung" fehlt.`;
+  }
+  return null;
+}
+
+function saveImport(){
+  const ta = document.getElementById('import-textarea');
+  const errBox = document.getElementById('import-error');
+  let obj;
+  try{ obj = JSON.parse(ta.value); }
+  catch(e){ errBox.textContent = 'Ungültiges JSON: ' + e.message; errBox.classList.add('active'); return; }
+  const err = validateSession(obj);
+  if (err){ errBox.textContent = err; errBox.classList.add('active'); return; }
+  errBox.classList.remove('active');
+  const idx = sessions.findIndex(s=>s.id===obj.id);
+  if (idx >= 0) sessions[idx] = obj; else sessions.push(obj);
+  persist();
+  renderLibrary();
+  closeImportModal();
+}
+
+/* ---------- template modal ---------- */
+function copyTemplate(){
+  const ta = document.getElementById('template-textarea');
+  ta.select();
+  ta.setSelectionRange(0, 999999);
+  navigator.clipboard?.writeText(ta.value).then(()=>{
+    const btn = document.getElementById('btn-template-copy');
+    const old = btn.textContent; btn.textContent = 'Kopiert ✓';
+    setTimeout(()=>btn.textContent = old, 1500);
+  }).catch(()=>{ /* clipboard blocked: text stays selected for manual copy */ });
+}
+
+/* ---------- event wiring ---------- */
+document.getElementById('btn-add').addEventListener('click', ()=>openImportModal(null));
+document.getElementById('btn-template').addEventListener('click', ()=>document.getElementById('overlay-template').classList.add('active'));
+document.getElementById('btn-template-close').addEventListener('click', ()=>document.getElementById('overlay-template').classList.remove('active'));
+document.getElementById('btn-template-copy').addEventListener('click', copyTemplate);
+document.getElementById('btn-back-lib').addEventListener('click', ()=>showView('view-library'));
+document.getElementById('btn-start').addEventListener('click', ()=>startSession(previewSessionId));
+document.getElementById('btn-import-cancel').addEventListener('click', closeImportModal);
+document.getElementById('btn-import-save').addEventListener('click', saveImport);
+document.getElementById('btn-done-lib').addEventListener('click', ()=>{ renderLibrary(); showView('view-library'); });
+document.getElementById('btn-stop').addEventListener('click', ()=>{ if(confirm('Session wirklich abbrechen?')) stopSession(); });
+document.getElementById('btn-skip').addEventListener('click', ()=>{ if(runner) advance(); });
+document.getElementById('btn-pause').addEventListener('click', (e)=>{
+  if (!runner) return;
+  runner.paused = !runner.paused;
+  e.target.textContent = runner.paused ? 'Weiter' : 'Pause';
+});
+
+init();
+
+if ('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{ /* offline cache optional, app works without it */ });
+  });
+}
+</script>
+</body>
+</html>
