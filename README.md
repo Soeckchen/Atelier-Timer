@@ -8,7 +8,8 @@ required.
 
 ## 1. Install it on your phone
 
-1. Open the GitHub Pages URL in your phone's browser.
+1. Open **https://soeckchen.github.io/Atelier-Timer/** in your phone's
+   browser.
 2. **iOS (Safari):** tap the Share icon → "Add to Home Screen".
    **Android (Chrome):** tap the menu (⋮) → "Install app" / "Add to Home screen".
 3. The app then opens full-screen like a native app, and works offline
