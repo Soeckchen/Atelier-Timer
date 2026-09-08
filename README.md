@@ -83,3 +83,7 @@ automatically.
 | `manifest.json` | PWA metadata (name, icon, full-screen launch) |
 | `sw.js` | Service worker for offline caching |
 | `icon-192.png`, `icon-512.png` | App icons for the home screen |
+
+## License
+
+MIT — see [LICENSE](LICENSE).
