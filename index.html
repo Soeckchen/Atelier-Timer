@@ -388,7 +388,7 @@ function renderLibrary(){
     card.innerHTML = `
       <h3>${escapeHtml(s.titel)}</h3>
       <p>${escapeHtml(s.beschreibung||'')}</p>
-      <div class="tag-row">${(s.fokus||[]).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>
+      <div class="tag-row">${renderTags(s.fokus)}</div>
       <div class="card-foot">
         <span class="card-meta">${totalMinutes(s)} min · ${s.phasen.length} Phasen · ${escapeHtml(s.schwierigkeit||'')}</span>
         <div>
@@ -419,6 +419,10 @@ function escapeHtml(str){
   const d = document.createElement('div'); d.textContent = str==null?'':String(str); return d.innerHTML;
 }
 
+function renderTags(fokus){
+  return (fokus||[]).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('');
+}
+
 /* ---------- preview ---------- */
 let previewSessionId = null;
 function openPreview(id){
@@ -427,7 +431,7 @@ function openPreview(id){
   previewSessionId = id;
   document.getElementById('pv-title').textContent = s.titel;
   document.getElementById('pv-desc').textContent = s.beschreibung || '';
-  document.getElementById('pv-tags').innerHTML = (s.fokus||[]).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('') +
+  document.getElementById('pv-tags').innerHTML = renderTags(s.fokus) +
     `<span class="tag">${totalMinutes(s)} min</span>`;
   document.getElementById('pv-hints').textContent = s.hinweise || '';
   const phasesEl = document.getElementById('pv-phases');
@@ -469,7 +473,7 @@ function currentPhase(){ return runner.session.phasen[runner.phaseIndex]; }
 function tick(){
   if (runner.paused) return;
   runner.secondsLeft--;
-  if (runner.secondsLeft < 0){
+  if (runner.secondsLeft <= 0){
     advance();
   } else {
     updateTimeDisplay();

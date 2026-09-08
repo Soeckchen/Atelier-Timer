@@ -30,7 +30,9 @@ self.addEventListener("fetch", (event) => {
     fetch(event.request)
       .then((response) => {
         const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        caches.open(CACHE_NAME)
+          .then((cache) => cache.put(event.request, copy))
+          .catch(() => { /* e.g. non-GET request: not cacheable, ignore */ });
         return response;
       })
       .catch(() => caches.match(event.request))
