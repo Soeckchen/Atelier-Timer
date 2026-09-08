@@ -450,6 +450,7 @@ document.getElementById('ring-progress').style.strokeDasharray = ringCircumferen
 function startSession(id){
   const s = sessions.find(x=>x.id===id);
   if (!s) return;
+  if (runner && runner.interval) clearInterval(runner.interval);
   runner = {
     session: s,
     phaseIndex: 0,
@@ -578,11 +579,12 @@ function validateSession(obj){
   if (!obj || typeof obj !== 'object') return 'Kein gültiges JSON-Objekt.';
   if (!obj.id || typeof obj.id !== 'string') return 'Feld "id" fehlt oder ist kein String.';
   if (!obj.titel || typeof obj.titel !== 'string') return 'Feld "titel" fehlt oder ist kein String.';
+  if (obj.fokus !== undefined && !Array.isArray(obj.fokus)) return 'Feld "fokus" muss ein Array sein.';
   if (!Array.isArray(obj.phasen) || obj.phasen.length === 0) return 'Feld "phasen" muss ein nicht-leeres Array sein.';
   for (const [i,p] of obj.phasen.entries()){
     if (!p.name) return `Phase ${i+1}: "name" fehlt.`;
-    if (!p.wiederholungen || p.wiederholungen < 1) return `Phase ${i+1}: "wiederholungen" muss ≥ 1 sein.`;
-    if (!p.dauer_sek_pro_wiederholung || p.dauer_sek_pro_wiederholung < 1) return `Phase ${i+1}: "dauer_sek_pro_wiederholung" muss ≥ 1 sein.`;
+    if (typeof p.wiederholungen !== 'number' || !Number.isFinite(p.wiederholungen) || p.wiederholungen < 1) return `Phase ${i+1}: "wiederholungen" muss eine Zahl ≥ 1 sein.`;
+    if (typeof p.dauer_sek_pro_wiederholung !== 'number' || !Number.isFinite(p.dauer_sek_pro_wiederholung) || p.dauer_sek_pro_wiederholung < 1) return `Phase ${i+1}: "dauer_sek_pro_wiederholung" muss eine Zahl ≥ 1 sein.`;
     if (!p.anweisung) return `Phase ${i+1}: "anweisung" fehlt.`;
   }
   return null;
